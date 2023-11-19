@@ -5,14 +5,6 @@ class CacheHandler:
     def __init__(self):
         self.collections: Dict[str, Dict[str, Any]] = {}  # Mocked Firebase Store
 
-    # Token storage operations
-    def set_access_token(self, source_system: str, access_token: str) -> None:
-        self.add_document("access_tokens", source_system, access_token)
-
-    def get_access_token(self, source_system: str) -> Optional[str]:
-        access_token = self.get_document("access_tokens", source_system)
-        return access_token
-
     # Mocked Firestore operations
     def add_document(
         self, collection_name: str, document_id: str, data: Dict[str, Any]

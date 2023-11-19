@@ -6,13 +6,12 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 from datetime import datetime
 from firebase_admin import firestore
 from pydantic import BaseModel, Field
-from fireorm.cache import cache_handler
-from fireorm.config import global_config as config, initialize_firebase
+from .cache import cache_handler
+from .config import global_config as config, initialize_firebase
 import re
 import inflect
 
-print("TESTMODE")
-print(config.test_mode)
+
 # Define the regex pattern for a Firestore ID
 FIRESTORE_ID_PATTERN = re.compile(r"^[a-z0-9]{20}$")
 

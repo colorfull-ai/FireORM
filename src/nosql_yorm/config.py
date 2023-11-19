@@ -1,6 +1,6 @@
 import os
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials
 
 class FirebaseLibraryConfig:
     def __init__(self, test_mode: bool = False, firebase_credentials_path: str = None):
