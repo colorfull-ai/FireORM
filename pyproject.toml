@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "fireorm"
+version = "0.1.0"
+description = "A Firebase ORM package"
+authors = ["Benjamin Garrard <ben@colorfull.ai>"]
+packages = [{ from = "src", include = "fireorm" }]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+firebase-admin = "^4.4.0"
+pydantic = "^1.8.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.0"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
