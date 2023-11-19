@@ -71,7 +71,7 @@ In test mode, `nosql_yorm` uses a temporary cache instead of the actual database
 from nosql_yorm.config import set_library_config
 
 # Enable test mode
-set_library_config(test_mode=True)
+set_library_config(read_write_to_cache=True)
 
 # Perform your tests here
 ```
@@ -95,6 +95,36 @@ async def update_store(store_id: str, store_data: Store):
     store.save()
     return store
 ```
+
+## Another Example
+
+```py
+from nosql_yorm.models import BaseFirebaseModel
+from nosql_yorm.config import set_library_config
+
+set_library_config(read_write_to_cache=True)
+
+
+class NewModel(BaseFirebaseModel):
+    example_field: str
+
+print(NewModel.get_all())
+
+for NewMd in NewModel.get_all():
+    NewMd.delete()
+
+new_model = NewModel(example_field="test_data")
+new_model.save()
+print(new_model)
+assert new_model.example_field == "test_data"
+new_model.save()
+assert new_model.id is not None
+prev_model = NewModel.get_by_id(new_model.id)
+print(prev_model)
+
+assert new_model == NewModel.get_by_id(new_model.id)
+```
+
 
 ## Contributing
 

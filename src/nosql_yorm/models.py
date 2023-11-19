@@ -38,13 +38,13 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
 
     @classmethod
     def get_by_id(
-        cls: Type[T], doc_id: str, test_mode: Optional[bool] = None
+        cls: Type[T], doc_id: str, read_write_to_cache: Optional[bool] = None
     ) -> Optional[T]:
         collection_name = cls._get_collection_name()
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
-        if test_mode:
+        if read_write_to_cache:
             doc_data = cache_handler.get_document(collection_name, doc_id)
             return cls(**doc_data) if doc_data else None
         else:
@@ -58,14 +58,14 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
 
     @classmethod
     def get_by_ids(
-        cls: Type[T], doc_ids: List[str], test_mode: Optional[bool] = None
+        cls: Type[T], doc_ids: List[str], read_write_to_cache: Optional[bool] = None
     ) -> List[T]:
         collection_name = cls._get_collection_name()
         documents = []
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
-        if test_mode:
+        if read_write_to_cache:
             # Fetch documents from the test cache
             for doc_id in doc_ids:
                 doc_data = cache_handler.get_document(collection_name, doc_id)
@@ -92,15 +92,15 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         page_size: int = 10,
         query_params: Optional[Dict[str, Any]] = None,
         array_contains: Optional[Dict[str, Any]] = None,
-        test_mode: Optional[bool] = None,
+        read_write_to_cache: Optional[bool] = None,
     ) -> List[T]:
         collection_name = cls._get_collection_name()
         start = (page - 1) * page_size
         end = start + page_size
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
-        if test_mode:
+        if read_write_to_cache:
             # Handle the test mode logic with query_params and array_contains filtering
             all_docs = cache_handler.query_collection(
                 collection_name, query_params
@@ -141,12 +141,12 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
             ]
 
     @classmethod
-    def get_all(cls: Type[T], test_mode: Optional[bool] = None) -> List[T]:
+    def get_all(cls: Type[T], read_write_to_cache: Optional[bool] = None) -> List[T]:
         collection_name = cls._get_collection_name()
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
-        if test_mode:
+        if read_write_to_cache:
             all_docs = cache_handler.list_collection(collection_name)
             return [cls(**doc) for doc in all_docs]
         else:
@@ -163,13 +163,13 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
             ]
 
     def save(
-        self, generate_new_id: bool = False, test_mode: Optional[bool] = None
+        self, generate_new_id: bool = False, read_write_to_cache: Optional[bool] = None
     ) -> None:
         collection_name = self._get_collection_name()
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
-        if test_mode:
+        if read_write_to_cache:
             document_id = (
                 self.id or self.generate_fake_firebase_id()
             )  # Implement this method or provide a fake ID
@@ -201,12 +201,12 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
                 doc_ref = db.collection(collection_name).document(self.id)
                 doc_ref.set(data_to_save, merge=True)
 
-    def delete(self, test_mode: Optional[bool] = None) -> None:
+    def delete(self, read_write_to_cache: Optional[bool] = None) -> None:
         collection_name = self._get_collection_name()
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
-        if test_mode:
+        if read_write_to_cache:
             cache_handler.delete_document(collection_name, self.id)
         else:
             doc_ref = db.collection(collection_name).document(self.id)
@@ -217,10 +217,10 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         update_data: Dict[str, Any],
         overwrite_id: bool = False,
         exclude_props: List[str] = [],
-        test_mode: Optional[bool] = None,
+        read_write_to_cache: Optional[bool] = None,
     ) -> None:
-        if test_mode is None:
-            test_mode = config.test_mode
+        if read_write_to_cache is None:
+            read_write_to_cache = config.read_write_to_cache
 
         # Update the instance properties
         for key, value in update_data.items():
@@ -228,7 +228,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
                 setattr(self, key, value)
                 
         # Log the merge or update to the cache if in test mode
-        if test_mode:
+        if read_write_to_cache:
             collection_name = self._get_collection_name()
             cache_handler.update_document(collection_name, self.id, self.dict())
         else:

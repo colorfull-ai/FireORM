@@ -3,8 +3,8 @@ import firebase_admin
 from firebase_admin import credentials
 
 class FirebaseLibraryConfig:
-    def __init__(self, test_mode: bool = False, firebase_credentials_path: str = None):
-        self.test_mode = test_mode
+    def __init__(self, read_write_to_cache: bool = False, firebase_credentials_path: str = None):
+        self.read_write_to_cache = read_write_to_cache
         # Set default credentials path if not provided
         self.firebase_credentials_path = firebase_credentials_path or os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "firebase_sa.json"
