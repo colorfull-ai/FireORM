@@ -6,11 +6,10 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 from datetime import datetime
 from firebase_admin import firestore
 from pydantic import BaseModel, Field
-from .cache import cache_handler
-from .config import global_config as config, initialize_firebase
+from nosql_yorm.cache import cache_handler
+from nosql_yorm.config import get_config, initialize_firebase
 import re
 import inflect
-
 
 # Define the regex pattern for a Firestore ID
 FIRESTORE_ID_PATTERN = re.compile(r"^[a-z0-9]{20}$")
@@ -23,7 +22,7 @@ T = TypeVar("T", bound="BaseFirebaseModel")
 # Initialize Firebase and Firestore client
 initialize_firebase()
 db = firestore.client()
-
+# print the file location where this is being called from
 
 class BaseFirebaseModel(BaseModel, Generic[T]):
     id: Optional[str] = Field(default_factory=lambda: None)
@@ -42,7 +41,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     ) -> Optional[T]:
         collection_name = cls._get_collection_name()
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
             doc_data = cache_handler.get_document(collection_name, doc_id)
@@ -63,7 +62,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         collection_name = cls._get_collection_name()
         documents = []
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
             # Fetch documents from the test cache
@@ -98,7 +97,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         start = (page - 1) * page_size
         end = start + page_size
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
             # Handle the test mode logic with query_params and array_contains filtering
@@ -144,7 +143,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     def get_all(cls: Type[T], read_write_to_cache: Optional[bool] = None) -> List[T]:
         collection_name = cls._get_collection_name()
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
             all_docs = cache_handler.list_collection(collection_name)
@@ -167,7 +166,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     ) -> None:
         collection_name = self._get_collection_name()
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
             document_id = (
@@ -204,7 +203,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     def delete(self, read_write_to_cache: Optional[bool] = None) -> None:
         collection_name = self._get_collection_name()
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
             cache_handler.delete_document(collection_name, self.id)
@@ -220,7 +219,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         read_write_to_cache: Optional[bool] = None,
     ) -> None:
         if read_write_to_cache is None:
-            read_write_to_cache = config.read_write_to_cache
+            read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         # Update the instance properties
         for key, value in update_data.items():
