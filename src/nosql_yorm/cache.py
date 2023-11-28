@@ -20,6 +20,7 @@ class CacheHandler:
 
     def load_cache(self):
         if get_config().get("persist_cache_as_db", False):
+            print("Loading cache...")
             file_path = os.path.join(self.output_dir, self.filename)
             print(f"Loading cache from {file_path}")
             if os.path.exists(file_path):
