@@ -1,6 +1,3 @@
-Based on the updated method of setting the configuration for `nosql_yorm`, I'll revise the README to reflect these changes:
-
----
 
 # README for the 🚀 `nosql_yorm` Package 🧙‍♂️
 
