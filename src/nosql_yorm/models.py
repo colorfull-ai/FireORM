@@ -24,6 +24,7 @@ initialize_firebase()
 db = firestore.client()
 # print the file location where this is being called from
 
+
 class BaseFirebaseModel(BaseModel, Generic[T]):
     id: Optional[str] = Field(default_factory=lambda: None)
     __collection_name__: str = ""
@@ -32,19 +33,22 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
 
     @classmethod
     def _get_collection_name(cls):
-        value =  cls.__collection_name__ or p.plural(cls.__name__)
+        value = cls.__collection_name__ or p.plural(cls.__name__)
         return value
 
     @classmethod
     def get_by_id(
-        cls: Type[T], doc_id: str, read_write_to_cache: Optional[bool] = None
+        cls: Type[T],
+        doc_id: str,
+        namespace: str = "User",
+        read_write_to_cache: Optional[bool] = None,
     ) -> Optional[T]:
         collection_name = cls._get_collection_name()
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
-            doc_data = cache_handler.get_document(collection_name, doc_id)
+            doc_data = cache_handler.get_document(namespace, collection_name, doc_id)
             return cls(**doc_data) if doc_data else None
         else:
             doc_ref = db.collection(collection_name).document(doc_id)
@@ -57,7 +61,10 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
 
     @classmethod
     def get_by_ids(
-        cls: Type[T], doc_ids: List[str], read_write_to_cache: Optional[bool] = None
+        cls: Type[T],
+        doc_ids: List[str],
+        namespace: str = "User",
+        read_write_to_cache: Optional[bool] = None,
     ) -> List[T]:
         collection_name = cls._get_collection_name()
         documents = []
@@ -67,7 +74,9 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         if read_write_to_cache:
             # Fetch documents from the test cache
             for doc_id in doc_ids:
-                doc_data = cache_handler.get_document(collection_name, doc_id)
+                doc_data = cache_handler.get_document(
+                    namespace, collection_name, doc_id
+                )
                 if doc_data:
                     documents.append(cls(**doc_data))
         else:
@@ -87,6 +96,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     @classmethod
     def get_page(
         cls: Type[T],
+        namespace: str = "User",
         page: int = 1,
         page_size: int = 10,
         query_params: Optional[Dict[str, Any]] = None,
@@ -102,7 +112,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         if read_write_to_cache:
             # Handle the test mode logic with query_params and array_contains filtering
             all_docs = cache_handler.query_collection(
-                collection_name, query_params
+                namespace, collection_name, query_params
             )
             if array_contains:
                 all_docs = [
@@ -140,13 +150,13 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
             ]
 
     @classmethod
-    def get_all(cls: Type[T], read_write_to_cache: Optional[bool] = None) -> List[T]:
+    def get_all(cls: Type[T], read_write_to_cache: Optional[bool] = None, namespace: str = "Users") -> List[T]:
         collection_name = cls._get_collection_name()
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
-            all_docs = cache_handler.list_collection(collection_name)
+            all_docs = cache_handler.list_collection(namespace, collection_name)
             return [cls(**doc) for doc in all_docs]
         else:
             docs = db.collection(collection_name).stream()
@@ -162,7 +172,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
             ]
 
     def save(
-        self, generate_new_id: bool = False, read_write_to_cache: Optional[bool] = None
+        self, generate_new_id: bool = False, read_write_to_cache: Optional[bool] = None, namespace: str = "User"
     ) -> None:
         collection_name = self._get_collection_name()
         if read_write_to_cache is None:
@@ -172,7 +182,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
             document_id = (
                 self.id or self.generate_fake_firebase_id()
             )  # Implement this method or provide a fake ID
-            cache_handler.add_document(collection_name, document_id, self.dict())
+            cache_handler.add_document(namespace, collection_name, document_id, self.dict())
             self.id = document_id
         else:
             collection_name = (
@@ -200,13 +210,13 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
                 doc_ref = db.collection(collection_name).document(self.id)
                 doc_ref.set(data_to_save, merge=True)
 
-    def delete(self, read_write_to_cache: Optional[bool] = None) -> None:
+    def delete(self, read_write_to_cache: Optional[bool] = None, namespace: str = "Users" ) -> None:
         collection_name = self._get_collection_name()
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
-            cache_handler.delete_document(collection_name, self.id)
+            cache_handler.delete_document(namespace, collection_name, self.id)
         else:
             doc_ref = db.collection(collection_name).document(self.id)
             doc_ref.delete()
@@ -217,6 +227,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         overwrite_id: bool = False,
         exclude_props: List[str] = [],
         read_write_to_cache: Optional[bool] = None,
+        namespace: str = "Users"
     ) -> None:
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
@@ -225,11 +236,11 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
         for key, value in update_data.items():
             if key not in exclude_props:
                 setattr(self, key, value)
-                
+
         # Log the merge or update to the cache if in test mode
         if read_write_to_cache:
             collection_name = self._get_collection_name()
-            cache_handler.update_document(collection_name, self.id, self.dict())
+            cache_handler.update_document(namespace, collection_name, self.id, self.dict())
         else:
             # Default properties that shouldn't be overwritten
             default_exclude = (

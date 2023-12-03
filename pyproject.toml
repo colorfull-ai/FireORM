@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nosql_yorm"
-version = "0.2.0"
+version = "0.2.1"
 description = "Yet Another ORM for NoSQL.  However, this one starts with firestore."
 authors = ["Benjamin Garrard <ben@colorfull.ai>"]
 packages = [{ from = "src", include = "nosql_yorm" }]
