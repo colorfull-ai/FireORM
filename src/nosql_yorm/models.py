@@ -18,11 +18,12 @@ FIRESTORE_ID_PATTERN = re.compile(r"^[a-z0-9]{20}$")
 p = inflect.engine()
 
 T = TypeVar("T", bound="BaseFirebaseModel")
+db = None
 
-# Initialize Firebase and Firestore client
-initialize_firebase()
-db = firestore.client()
-# print the file location where this is being called from
+def set_firestore_client(client):
+    global db
+    initialize_firebase()
+    db = client
 
 
 class BaseFirebaseModel(BaseModel, Generic[T]):
