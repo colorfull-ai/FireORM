@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from nosql_yorm.config import get_config
+from nosql_yorm.utils import CustomEncoder
 
 class CacheHandler:
     def __init__(self, output_dir='db_output', filename='cache.json'):
@@ -19,7 +20,7 @@ class CacheHandler:
             os.makedirs(self.output_dir, exist_ok=True)
             file_path = os.path.join(self.output_dir, self.filename)
             with open(file_path, 'w') as f:
-                json.dump(self.namespaces, f)
+                json.dump(self.namespaces, f, cls=CustomEncoder)
 
     def load_cache(self):
         if get_config().get("persist_cache_as_db", False):
