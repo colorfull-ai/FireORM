@@ -41,7 +41,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     def get_by_id(
         cls: Type[T],
         doc_id: str,
-        namespace: str = "User",
+        namespace: str = "collections",
         read_write_to_cache: Optional[bool] = None,
     ) -> Optional[T]:
         collection_name = cls._get_collection_name()
@@ -64,7 +64,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     def get_by_ids(
         cls: Type[T],
         doc_ids: List[str],
-        namespace: str = "User",
+        namespace: str = "collections",
         read_write_to_cache: Optional[bool] = None,
     ) -> List[T]:
         collection_name = cls._get_collection_name()
@@ -97,16 +97,19 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
     @classmethod
     def get_page(
         cls: Type[T],
-        namespace: str = "User",
         page: int = 1,
         page_size: int = 10,
         query_params: Optional[Dict[str, Any]] = None,
         array_contains: Optional[Dict[str, Any]] = None,
+        sort_by: Optional[str] = None,  # New parameter for sorting field
+        sort_direction: Optional[str] = "asc",  # New parameter for sort direction
+        namespace: str = "collections",
         read_write_to_cache: Optional[bool] = None,
     ) -> List[T]:
         collection_name = cls._get_collection_name()
         start = (page - 1) * page_size
         end = start + page_size
+
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
 
@@ -136,22 +139,32 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
                         query = query.where(key, "in", value)
                     else:
                         query = query.where(key, "==", value)
+
+            # Apply array_contains if provided
             if array_contains:
                 for key, value in array_contains.items():
                     query = query.where(key, "array_contains", value)
+
+            # Apply sorting
+            if sort_by:
+                direction = firestore.Query.ASCENDING if sort_direction == "asc" else firestore.Query.DESCENDING
+                query = query.order_by(sort_by, direction=direction)
+
+            # Apply pagination
             docs = query.offset(start).limit(page_size).stream()
             return [
-                cls(
-                    id=doc.id,
-                    **(lambda d: {k: v for k, v in d.items() if k != "id"})(
-                        doc.to_dict()
-                    ),
-                )
-                for doc in docs
-            ]
+            cls(
+                id=doc.id,
+                **(lambda d: {k: v for k, v in d.items() if k != "id"})(
+                    doc.to_dict()
+                ),
+            )
+            for doc in docs
+        ]
+
 
     @classmethod
-    def get_all(cls: Type[T], read_write_to_cache: Optional[bool] = None, namespace: str = "Users") -> List[T]:
+    def get_all(cls: Type[T], read_write_to_cache: Optional[bool] = None, namespace: str = "collections") -> List[T]:
         collection_name = cls._get_collection_name()
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
@@ -173,18 +186,24 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
             ]
 
     def save(
-        self, generate_new_id: bool = False, read_write_to_cache: Optional[bool] = None, namespace: str = "User"
+        self, generate_new_id: bool = False, read_write_to_cache: Optional[bool] = None, namespace: str = "collections"
     ) -> None:
+        
         collection_name = self._get_collection_name()
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
 
         if read_write_to_cache:
-            document_id = (
-                self.id or self.generate_fake_firebase_id()
-            )  # Implement this method or provide a fake ID
-            cache_handler.add_document(namespace, collection_name, document_id, self.dict())
-            self.id = document_id
+            if not self.id or generate_new_id:
+                self.id = self.generate_fake_firebase_id()
+            # Check if the document is already in the cache
+            existing_document = cache_handler.get_document(namespace, collection_name, self.id)
+            if existing_document:
+                # Update the existing document in the cache
+                cache_handler.update_document(namespace, collection_name, self.id, self.dict())
+            else:
+                # Add new document to the cache
+                cache_handler.add_document(namespace, collection_name, self.id, self.dict())
         else:
             collection_name = (
                 self.__fields__["collection_name"].default
@@ -211,7 +230,7 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
                 doc_ref = db.collection(collection_name).document(self.id)
                 doc_ref.set(data_to_save, merge=True)
 
-    def delete(self, read_write_to_cache: Optional[bool] = None, namespace: str = "Users" ) -> None:
+    def delete(self, read_write_to_cache: Optional[bool] = None, namespace: str = "collections" ) -> None:
         collection_name = self._get_collection_name()
         if read_write_to_cache is None:
             read_write_to_cache = get_config().get("read_write_to_cache", False)
@@ -250,6 +269,9 @@ class BaseFirebaseModel(BaseModel, Generic[T]):
 
             # Combine default excludes with user provided excludes
             exclude_props.extend(default_exclude)
+
+            if isinstance(update_data, BaseFirebaseModel):
+                update_data = update_data.dict()
 
             # Update the instance properties
             for key, value in update_data.items():

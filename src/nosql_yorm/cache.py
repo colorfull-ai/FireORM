@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from typing import Any, Dict, List, Optional
@@ -5,12 +7,12 @@ from typing import Any, Dict, List, Optional
 from nosql_yorm.config import get_config
 from nosql_yorm.utils import CustomEncoder
 
-class CacheHandler:
+class NameSpacedCache:
     def __init__(self, output_dir='db_output', filename='cache.json'):
         self.namespaces: Dict[str, Dict[str, Dict[str, Any]]] = {}  # Namespaced collections
         self.output_dir = output_dir
         self.filename = filename
-        self.load_cache()  # Load existing cache data on initialization
+        # self.load_cache()  # Load existing cache data on initialization
 
     def set_output_dir(self, output_dir: str) -> None:
         self.output_dir = output_dir
@@ -25,9 +27,14 @@ class CacheHandler:
     def load_cache(self):
         if get_config().get("persist_cache_as_db", False):
             file_path = os.path.join(self.output_dir, self.filename)
+            print(f"Loading cache from {file_path}")
             if os.path.exists(file_path):
                 with open(file_path, 'r') as f:
                     self.namespaces = json.load(f)
+    
+    def merge_handler(self, handler: 'NameSpacedCache') -> None:
+        self.namespaces.update(handler.namespaces)
+        self.save_cache()
 
     def add_document(self, namespace: str, collection_name: str, document_id: str, data: Dict[str, Any]) -> None:
         self.namespaces.setdefault(namespace, {}).setdefault(collection_name, {})[document_id] = data
@@ -66,6 +73,5 @@ class CacheHandler:
         self.namespaces.clear()
         self.save_cache()
 
-# Usage example
-cache_handler = CacheHandler()
+cache_handler = NameSpacedCache()
 
