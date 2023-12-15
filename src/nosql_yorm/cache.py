@@ -36,28 +36,28 @@ class NameSpacedCache:
         self.namespaces.update(handler.namespaces)
         self.save_cache()
 
-    def add_document(self, namespace: str, collection_name: str, document_id: str, data: Dict[str, Any]) -> None:
+    def add_document(self, collection_name: str, document_id: str, data: Dict[str, Any], namespace: str="default") -> None:
         self.namespaces.setdefault(namespace, {}).setdefault(collection_name, {})[document_id] = data
         self.save_cache()
 
-    def get_document(self, namespace: str, collection_name: str, document_id: str) -> Optional[Dict[str, Any]]:
+    def get_document(self, collection_name: str, document_id: str , namespace: str="default") -> Optional[Dict[str, Any]]:
         return self.namespaces.get(namespace, {}).get(collection_name, {}).get(document_id)
 
-    def update_document(self, namespace: str, collection_name: str, document_id: str, data: Dict[str, Any]) -> None:
+    def update_document(self, collection_name: str, document_id: str, data: Dict[str, Any], namespace: str="default") -> None:
         if namespace in self.namespaces and collection_name in self.namespaces[namespace] and document_id in self.namespaces[namespace][collection_name]:
             self.namespaces[namespace][collection_name][document_id].update(data)
             self.save_cache()
 
-    def delete_document(self, namespace: str, collection_name: str, document_id: str) -> None:
+    def delete_document(self, collection_name: str, document_id: str, namespace: str="default") -> None:
         if namespace in self.namespaces and collection_name in self.namespaces[namespace] and document_id in self.namespaces[namespace][collection_name]:
             del self.namespaces[namespace][collection_name][document_id]
             self.save_cache()
 
-    def list_collection(self, namespace: str, collection_name: str) -> List[Dict[str, Any]]:
+    def list_collection(self, collection_name: str, namespace: str="default") -> List[Dict[str, Any]]:
         return list(self.namespaces.get(namespace, {}).get(collection_name, {}).values())
 
-    def query_collection(self, namespace: str, collection_name: str, query_params: Optional[Dict[str, Any]] = None) -> List[Dict]:
-        all_docs = self.list_collection(namespace, collection_name)
+    def query_collection(self, collection_name: str, query_params: Optional[Dict[str, Any]] = None, namespace: str="default") -> List[Dict]:
+        all_docs = self.list_collection(collection_name, namespace)
         if not query_params:
             return all_docs
 
