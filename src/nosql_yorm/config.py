@@ -34,7 +34,7 @@ def get_config():
 def initialize_firebase():
     shared_config = get_config()
     try:
-        firebase_admin.get_app()
+        return firebase_admin.get_app()
     except ValueError:
         cred_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', shared_config.get('firebase_credentials_path'))
         if not cred_path:
